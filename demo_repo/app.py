@@ -20,7 +20,9 @@ def calculate_subtotal(items: list[dict]) -> float:
 
 
 def apply_discount(subtotal: float, promo_code: str | None = None) -> float:
-    """Applies known promo codes (SAVE10, SAVE20) to a subtotal."""
+    """Applies known promo codes (SAVE10, SAVE20, SAVE50) to a subtotal."""
+    if promo_code and promo_code.strip().upper() == "SAVE50":
+        return round(subtotal * 0.50, 2)
     if not promo_code:
         return round(subtotal, 2)
 
@@ -55,4 +57,4 @@ def checkout():
             "final_total": final_total,
         }), 200
     except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
+        return jsonify({"error": str(exc)}), 

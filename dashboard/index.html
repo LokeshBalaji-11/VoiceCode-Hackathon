@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceCode Autopilot Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-6 font-sans">
+    <div class="max-w-5xl mx-auto space-y-6">
+        <!-- Header -->
+        <header class="flex justify-between items-center border-b border-slate-800 pb-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-indigo-400">VoiceCode Autopilot</h1>
+                <p class="text-sm text-slate-400">Voice-Driven Coding Agent with AssemblyAI & Grok Backend</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span id="sponsorBadge" class="px-3 py-1 bg-emerald-950 border border-emerald-800 text-emerald-400 text-xs rounded-full font-medium">FastAPI Connected</span>
+                <button onclick="triggerUndo()" class="px-3 py-1.5 bg-rose-900/40 hover:bg-rose-900/60 border border-rose-700 text-rose-300 text-xs rounded-lg font-medium transition">🔄 One-Click Undo</button>
+            </div>
+        </header>
+
+        <!-- Main Input Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Left Panel: Input & Controls -->
+            <div class="md:col-span-1 space-y-4 bg-slate-900/60 border border-slate-800 p-5 rounded-xl">
+                <h2 class="text-lg font-semibold text-slate-200">1. Instruction Input</h2>
+                
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Editable Request / Prompt</label>
+                    <textarea id="promptInput" rows="5" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500" placeholder="Type instructions here...">Add a SAVE50 promo code for 50% off orders.</textarea>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="runAgent(false)" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm rounded-lg transition shadow-lg shadow-indigo-900/20">Preview Plan</button>
+                    <button onclick="runAgent(true)" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm rounded-lg transition shadow-lg shadow-emerald-900/20">Approve & PR</button>
+                </div>
+                <div id="statusBadge" class="text-xs text-center text-slate-400 pt-2">Status: Ready</div>
+            </div>
+
+            <!-- Right Panel: Timeline & Execution Log -->
+            <div class="md:col-span-2 space-y-4 bg-slate-900/60 border border-slate-800 p-5 rounded-xl">
+                <h2 class="text-lg font-semibold text-slate-200">2. Execution Timeline & Audit Log</h2>
+                <div id="timelineContainer" class="space-y-3 bg-slate-950 border border-slate-800 p-4 rounded-lg h-80 overflow-y-auto text-sm">
+                    <p class="text-slate-500 italic">No run initiated yet. Click Preview Plan or Approve & PR.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Section -->
+        <div class="bg-slate-900/60 border border-slate-800 p-5 rounded-xl space-y-3">
+            <h2 class="text-lg font-semibold text-slate-200">3. Execution Logs & Test Output</h2>
+            <pre id="outputLog" class="bg-slate-950 border border-slate-800 p-4 rounded-lg text-xs text-emerald-400 font-mono overflow-x-auto h-48">Waiting for execution...</pre>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+
+        async function runAgent(approved) {
+            const prompt = document.getElementById("promptInput").value;
+            const timelineContainer = document.getElementById("timelineContainer");
+            const outputLog = document.getElementById("outputLog");
+            const statusBadge = document.getElementById("statusBadge");
+
+            statusBadge.innerText = approved ? "Status: Executing Full Pipeline..." : "Status: Generating Preview Plan...";
+            timelineContainer.innerHTML = `<p class="text-indigo-400 animate-pulse">Running agent workflow (${approved ? 'Approval Mode' : 'Preview Mode'})...</p>`;
+            
+            try {
+                const response = await fetch(`${API_URL}/api/run`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: prompt, approved: approved })
+                });
+                const data = await response.json();
+                
+                let timelineHTML = "";
+                if (data.timeline) {
+                    data.timeline.forEach((step, idx) => {
+                        let statusColor = 'bg-amber-950 text-amber-400';
+                        if (step.status === 'completed' || step.status === 'passed') {
+                            statusColor = 'bg-emerald-950 text-emerald-400';
+                        } else if (step.status === 'failed') {
+                            statusColor = 'bg-rose-950 text-rose-400';
+                        }
+                        
+                        timelineHTML += `<div class="p-2.5 bg-slate-900 border border-slate-800 rounded flex justify-between items-center">
+                            <div><span class="font-semibold text-indigo-300">Step ${idx+1}:</span> ${step.step}</div>
+                            <span class="px-2 py-0.5 text-xs rounded font-medium ${statusColor}">${step.status}</span>
+                        </div>`;
+                    });
+                }
+                timelineContainer.innerHTML = timelineHTML;
+                outputLog.innerText = JSON.stringify(data, null, 2);
+                statusBadge.innerText = `Status: ${data.status}`;
+            } catch (err) {
+                timelineContainer.innerHTML = `<p class="text-rose-400">Error connecting to FastAPI backend.</p>`;
+                outputLog.innerText = err.toString();
+                statusBadge.innerText = "Status: Error";
+            }
+        }
+
+        async function triggerUndo() {
+            try {
+                const response = await fetch(`${API_URL}/api/undo`, { method: "POST" });
+                const data = await response.json();
+                alert(data.message);
+                document.getElementById("statusBadge").innerText = "Status: Rolled back";
+            } catch (err) {
+                alert("Failed to trigger undo.");
+            }
+        }
+    </script>
+</body>
+</html>
