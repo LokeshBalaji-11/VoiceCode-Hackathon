@@ -20,6 +20,7 @@ app.add_middleware(
 )
 
 
+
 class AgentRequest(BaseModel):
     prompt: str
     approved: bool = False
@@ -49,3 +50,16 @@ def run_agent(req: AgentRequest):
 def undo_action():
     message = undo_last_changes()
     return {"status": "success", "message": message}
+from fastapi.responses import HTMLResponse
+from pathlib import Path
+
+# Define templates directory
+TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_studio_canvas():
+    """Serves the elite VoiceCode Autopilot Studio UI natively."""
+    index_file = TEMPLATES_DIR / "index.html"
+    if index_file.exists():
+        return index_file.read_text(encoding="utf-8")
+    return "<h1>index.html not found in templates directory.</h1>"
