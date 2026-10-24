@@ -4,4 +4,8 @@ venv/
 __pycache__/
 *.pyc
 .pytest_cache/
-.agent_workspace/
+.agent_workspace/.env
+__pycache__/
+
+workspaces/
+venv/

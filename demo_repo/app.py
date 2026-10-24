@@ -20,13 +20,19 @@ def calculate_subtotal(items: list[dict]) -> float:
 
 
 def apply_discount(subtotal: float, promo_code: str | None = None) -> float:
-    """Applies known promo codes (SAVE10, SAVE20, SAVE50) to a subtotal."""
-    if promo_code and promo_code.strip().upper() == "SAVE50":
-        return round(subtotal * 0.50, 2)
+    """Applies known promo codes (SAVE10, SAVE20, SAVE50, VIP50) to a subtotal."""
     if not promo_code:
         return round(subtotal, 2)
 
     code = promo_code.strip().upper()
+    
+    if code == "VIP50":
+        if subtotal < 200.0:
+            raise ValueError("VIP50 requires a minimum subtotal of $200.")
+        return round(subtotal * 0.50, 2)
+
+    if code == "SAVE50":
+        return round(subtotal * 0.50, 2)
     if code == "SAVE10":
         return round(subtotal * 0.90, 2)
     if code == "SAVE20":
@@ -57,4 +63,39 @@ def checkout():
             "final_total": final_total,
         }), 200
     except ValueError as exc:
-        return jsonify({"error": str(exc)}), 
+        return jsonify({"error": str(exc)}), 400
+
+
+# Pydantic models for sponsor matching
+from pydantic import BaseModel, ValidationError
+from typing import List
+
+class Student(BaseModel):
+    name: str
+    gpa: float
+    major: str
+
+class Sponsor(BaseModel):
+    company_name: str
+    min_gpa: float
+    target_majors: list[str]
+
+class MatchRequest(BaseModel):
+    student: Student
+    sponsors: list[Sponsor]
+
+@app.route("/api/sponsor-match", methods=["POST"])
+def sponsor_match():
+    """Matches a student with eligible sponsors based on GPA and major."""
+    data = request.get_json(silent=True) or {}
+    try:
+        req = MatchRequest(**data)
+    except ValidationError as e:
+        return jsonify({"error": e.errors()}), 400
+
+    eligible = [
+        sponsor.model_dump()
+        for sponsor in req.sponsors
+        if req.student.gpa >= sponsor.min_gpa and req.student.major in sponsor.target_majors
+    ]
+    return jsonify(eligible), 200

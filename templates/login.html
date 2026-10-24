@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in | VoiceCode Autopilot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { fontFamily: {
+                sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+            } } }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+            --ring: rgba(255, 255, 255, 0.07);
+        }
+        html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+        [hidden] { display: none !important; }
+        body { background: #060608; }
+        .glow { background: radial-gradient(55% 45% at 50% 0%, rgba(99, 102, 241, 0.16), transparent 70%); }
+        .dotted-grid {
+            background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        .balance { text-wrap: balance; }
+
+        .surface { box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 40px -18px rgba(0, 0, 0, 0.7); }
+        .surface-sm { box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgba(0, 0, 0, 0.3); }
+
+        .field {
+            width: 100%; padding: 0.625rem 0.75rem; font-size: 0.8125rem; color: #e4e4e7;
+            background: rgba(24, 24, 27, 0.9); border-radius: 0.75rem;
+            box-shadow: 0 0 0 1px var(--ring), inset 0 1px 2px rgba(0, 0, 0, 0.4);
+            transition: box-shadow 160ms var(--ease-out);
+        }
+        .field::placeholder { color: #52525b; }
+        .field:focus {
+            outline: none;
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.7), 0 0 0 4px rgba(99, 102, 241, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.625rem 0.875rem; font-size: 0.8125rem; font-weight: 600; border-radius: 0.75rem;
+            cursor: pointer; user-select: none; width: 100%;
+            transition: transform 160ms var(--ease-out), background-color 160ms var(--ease-out), opacity 160ms var(--ease-out);
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn:focus-visible, .seg button:focus-visible, .link-btn:focus-visible {
+            outline: none; box-shadow: 0 0 0 2px #09090b, 0 0 0 4px rgba(129, 140, 248, 0.85);
+        }
+        .btn:disabled { opacity: 0.6; cursor: progress; transform: none; }
+        .btn.is-busy::before {
+            content: ""; width: 13px; height: 13px; border-radius: 50%;
+            border: 2px solid currentColor; border-right-color: transparent;
+            animation: spin 700ms linear infinite;
+        }
+        .btn-primary {
+            background: #4f46e5; color: #fff;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 0 1px rgba(99, 102, 241, 0.5), 0 8px 20px -8px rgba(79, 70, 229, 0.7);
+        }
+        .btn-ghost { background: #18181b; color: #e4e4e7; box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgba(0, 0, 0, 0.4); }
+        @media (hover: hover) and (pointer: fine) {
+            .btn-primary:hover:not(:disabled) { background: #6366f1; }
+            .btn-ghost:hover:not(:disabled) { background: #27272a; }
+            .link-btn:hover { color: #e4e4e7; }
+            .seg button:not([aria-selected="true"]):hover { color: #e4e4e7; }
+        }
+
+        /* Segmented control with a sliding thumb (transform only) */
+        .seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 0.75rem; background: rgba(24, 24, 27, 0.9); box-shadow: 0 0 0 1px var(--ring); }
+        .seg-thumb {
+            position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px);
+            border-radius: 0.5rem; background: #27272a; box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgba(0, 0, 0, 0.4);
+            transition: transform 220ms var(--ease-out);
+        }
+        .seg[data-mode="signup"] .seg-thumb { transform: translateX(100%); }
+        .seg button { position: relative; z-index: 1; padding: 0.4rem 0; font-size: 0.75rem; font-weight: 600; color: #a1a1aa; border-radius: 0.5rem; cursor: pointer; transition: color 160ms var(--ease-out); }
+        .seg button[aria-selected="true"] { color: #fff; }
+
+        .link-btn { color: #a1a1aa; font-size: 0.6875rem; cursor: pointer; border-radius: 0.375rem; transition: color 160ms var(--ease-out); }
+
+        .guest-card {
+            text-align: left; width: 100%; padding: 1rem; border-radius: 1rem; cursor: pointer;
+            background: rgba(24, 24, 27, 0.7); box-shadow: 0 0 0 1px var(--ring), 0 1px 2px rgba(0, 0, 0, 0.35);
+            transition: transform 160ms var(--ease-out), background-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+        }
+        .guest-card:active { transform: scale(0.99); }
+        .guest-card:disabled { opacity: 0.6; cursor: progress; transform: none; }
+        .guest-card:focus-visible { outline: none; box-shadow: 0 0 0 2px #09090b, 0 0 0 4px rgba(129, 140, 248, 0.85); }
+        @media (hover: hover) and (pointer: fine) {
+            .guest-card:hover:not(:disabled) { background: rgba(39, 39, 42, 0.8); box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.35), 0 8px 24px -12px rgba(79, 70, 229, 0.5); }
+        }
+
+        .error {
+            padding: 0.625rem 0.75rem; border-radius: 0.75rem; font-size: 0.75rem; color: #fda4af;
+            background: rgba(76, 5, 25, 0.35); box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.3);
+        }
+
+        @keyframes enter { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: none; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .enter { animation: enter 280ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 60ms); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .enter { animation-duration: 1ms; animation-delay: 0ms; }
+            .btn.is-busy::before { animation: none; }
+            .seg-thumb, .field, .btn, .guest-card { transition: none; }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-zinc-100 font-sans antialiased selection:bg-indigo-500 selection:text-white relative overflow-x-hidden">
+    <div class="glow absolute inset-x-0 top-0 h-96 pointer-events-none"></div>
+    <div class="dotted-grid absolute inset-0 pointer-events-none opacity-60"></div>
+
+    <main class="relative max-w-4xl mx-auto px-5 py-10 sm:py-16">
+        <header class="enter flex items-center gap-3 mb-8" style="--i:0">
+            <span class="w-9 h-9 rounded-xl grid place-items-center bg-indigo-600 font-bold text-white surface-sm">V</span>
+            <div>
+                <div class="font-bold tracking-tight text-white">VoiceCode <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">Autopilot Studio</span></div>
+                <div class="text-[11px] text-zinc-500 font-mono">Voice-driven, safety-audited coding agent</div>
+            </div>
+        </header>
+
+        <div class="grid md:grid-cols-2 gap-5">
+
+            <!-- Sign in / Create account -->
+            <section class="enter surface rounded-2xl bg-zinc-900/60 backdrop-blur p-6 space-y-5" style="--i:1" aria-labelledby="authTitle">
+                <h1 id="authTitle" class="text-sm font-semibold text-white">Welcome to Autopilot</h1>
+
+                <div class="seg" id="seg" data-mode="signin" role="tablist">
+                    <span class="seg-thumb"></span>
+                    <button type="button" id="tabSignin" role="tab" aria-selected="true">Sign in</button>
+                    <button type="button" id="tabSignup" role="tab" aria-selected="false">Create account</button>
+                </div>
+
+                <form id="authForm" class="space-y-4" novalidate>
+                    <div id="nameRow" hidden>
+                        <label for="name" class="block text-[11px] font-medium text-zinc-400 mb-1.5">Name <span class="text-zinc-600">(optional)</span></label>
+                        <input id="name" class="field" type="text" autocomplete="name" maxlength="80" placeholder="Your name">
+                    </div>
+                    <div>
+                        <label for="email" class="block text-[11px] font-medium text-zinc-400 mb-1.5">Email</label>
+                        <input id="email" class="field" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" required>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="password" class="block text-[11px] font-medium text-zinc-400">Password</label>
+                            <button type="button" id="togglePw" class="link-btn" aria-controls="password">Show</button>
+                        </div>
+                        <input id="password" class="field" type="password" autocomplete="current-password" maxlength="200" placeholder="At least 8 characters" required>
+                    </div>
+
+                    <div id="error" class="error" role="alert" hidden></div>
+
+                    <button id="submitBtn" type="submit" class="btn btn-primary">Sign in</button>
+                </form>
+
+                <p class="text-[11px] text-zinc-500 leading-relaxed">
+                    Passwords are hashed with scrypt and never stored in plain text. Your session lives in an
+                    HttpOnly cookie, and only you can see your chats and history.
+                </p>
+            </section>
+
+            <!-- Guest + benefits -->
+            <section class="enter surface rounded-2xl bg-zinc-900/60 backdrop-blur p-6 space-y-5" style="--i:2" aria-labelledby="guestTitle">
+                <div class="space-y-1">
+                    <h2 id="guestTitle" class="text-sm font-semibold text-white">Or explore instantly</h2>
+                    <p class="text-xs text-zinc-400 leading-relaxed balance">
+                        Open a private guest workspace with no sign-up. Nobody else can see it, and it deletes itself after 24 hours.
+                    </p>
+                </div>
+
+                <button id="guestBtn" type="button" class="guest-card">
+                    <div class="text-[10px] font-mono uppercase tracking-wider text-indigo-300">Guest workspace · 24 hours</div>
+                    <div class="mt-1 text-sm font-semibold text-white">Continue as guest</div>
+                    <div class="mt-1 text-xs text-zinc-400">Try voice commands, the 7-step pipeline and the safety audit right away.</div>
+                </button>
+
+                <ul class="space-y-2.5 text-xs text-zinc-400">
+                    <li class="flex gap-2.5"><span class="text-indigo-400">●</span><span><span class="text-zinc-200 font-medium">Saved chats.</span> Come back to any past request, diff and audit log.</span></li>
+                    <li class="flex gap-2.5"><span class="text-indigo-400">●</span><span><span class="text-zinc-200 font-medium">Private by default.</span> Every account only sees its own history.</span></li>
+                    <li class="flex gap-2.5"><span class="text-indigo-400">●</span><span><span class="text-zinc-200 font-medium">Delete anytime.</span> One click removes your account and all its data.</span></li>
+                </ul>
+            </section>
+        </div>
+
+        <p class="mt-8 text-center text-[11px] text-zinc-600 font-mono">Guest data is erased automatically. Create an account to keep your work.</p>
+    </main>
+
+    <script>
+        const $ = (id) => document.getElementById(id);
+        let mode = "signin";
+        let busy = false;
+
+        function setMode(next) {
+            mode = next;
+            const signup = next === "signup";
+            $("seg").dataset.mode = next;
+            $("tabSignin").setAttribute("aria-selected", String(!signup));
+            $("tabSignup").setAttribute("aria-selected", String(signup));
+            $("submitBtn").textContent = signup ? "Create account" : "Sign in";
+            $("password").autocomplete = signup ? "new-password" : "current-password";
+            const row = $("nameRow");
+            row.hidden = !signup;
+            if (signup) { row.classList.remove("enter"); void row.offsetWidth; row.classList.add("enter"); }
+            showError("");
+            history.replaceState(null, "", signup ? "#signup" : location.pathname);
+        }
+
+        function showError(message) {
+            const el = $("error");
+            el.textContent = message;
+            el.hidden = !message;
+            if (message) { el.classList.remove("enter"); void el.offsetWidth; el.classList.add("enter"); }
+        }
+
+        function setBusy(next, button) {
+            busy = next;
+            ["submitBtn", "guestBtn", "tabSignin", "tabSignup"].forEach((id) => { $(id).disabled = next; });
+            $("submitBtn").classList.toggle("is-busy", next && button === "submit");
+        }
+
+        function errorText(data, status) {
+            if (data && typeof data.detail === "string") return data.detail;
+            if (data && Array.isArray(data.detail) && data.detail[0] && data.detail[0].msg) return data.detail[0].msg;
+            return `Something went wrong (status ${status}). Please try again.`;
+        }
+
+        async function post(path, body) {
+            const res = await fetch(path, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body || {})
+            });
+            let data = null;
+            try { data = await res.json(); } catch (e) {}
+            if (!res.ok) throw new Error(errorText(data, res.status));
+            return data;
+        }
+
+        $("authForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (busy) return;
+            const email = $("email").value.trim();
+            const password = $("password").value;
+            if (!email || !email.includes("@")) { showError("Please enter a valid email address."); $("email").focus(); return; }
+            if (mode === "signup" && password.length < 8) { showError("Password must be at least 8 characters."); $("password").focus(); return; }
+            if (!password) { showError("Please enter your password."); $("password").focus(); return; }
+
+            showError("");
+            setBusy(true, "submit");
+            try {
+                if (mode === "signup") {
+                    await post("/api/auth/signup", { email, password, name: $("name").value.trim() });
+                } else {
+                    await post("/api/auth/login", { email, password });
+                }
+                location.href = "/";
+            } catch (err) {
+                showError(err.message);
+                setBusy(false);
+            }
+        });
+
+        $("guestBtn").addEventListener("click", async () => {
+            if (busy) return;
+            showError("");
+            setBusy(true, "guest");
+            try {
+                await post("/api/auth/guest");
+                location.href = "/";
+            } catch (err) {
+                showError(err.message);
+                setBusy(false);
+            }
+        });
+
+        $("tabSignin").addEventListener("click", () => setMode("signin"));
+        $("tabSignup").addEventListener("click", () => setMode("signup"));
+        $("togglePw").addEventListener("click", () => {
+            const input = $("password");
+            const show = input.type === "password";
+            input.type = show ? "text" : "password";
+            $("togglePw").textContent = show ? "Hide" : "Show";
+        });
+
+        if (location.hash === "#signup") setMode("signup");
+    </script>
+</body>
+</html>

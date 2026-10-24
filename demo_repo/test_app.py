@@ -45,3 +45,38 @@ def test_checkout_endpoint_negative_rejected(client):
     )
     assert response.status_code == 400
     assert "non-negative" in response.get_json()["error"]
+
+
+def test_sponsor_match_endpoint(client):
+    """Test 5: Verify sponsor matching endpoint returns correct filtered sponsors."""
+    payload = {
+        "student": {"name": "Alice", "gpa": 3.5, "major": "Computer Science"},
+        "sponsors": [
+            {
+                "company_name": "TechCorp",
+                "min_gpa": 3.0,
+                "target_majors": ["Computer Science", "Math"]
+            },
+            {
+                "company_name": "BizInc",
+                "min_gpa": 3.7,
+                "target_majors": ["Business"]
+            },
+            {
+                "company_name": "MathCo",
+                "min_gpa": 3.0,
+                "target_majors": ["Math"]
+            }
+        ]
+    }
+    response = client.post("/api/sponsor-match", json=payload)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert isinstance(data, list)
+    assert data == [
+        {
+            "company_name": "TechCorp",
+            "min_gpa": 3.0,
+            "target_majors": ["Computer Science", "Math"]
+        }
+    ]

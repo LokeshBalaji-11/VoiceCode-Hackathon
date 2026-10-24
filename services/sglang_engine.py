@@ -1,18 +1,13 @@
-"""
-SGLang & OpenAI-Compatible Engine Client (Sponsor 2).
-Uses OpenAI-compatible endpoints with Pydantic schema enforcement.
-"""
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
-from core.schemas import AgentResponse, CodingSpec
+from core.schemas import AgentResponse, CodingSpec, FilePatch
 
 load_dotenv()
 
 
 def get_llm_client() -> tuple[OpenAI, str]:
     """Initializes and returns the OpenAI-compatible client (SGLang or Grok fallback)."""
-    # If SGLang is active, use SGLang URL; otherwise use Grok fallback
     sglang_url = os.getenv("SGLANG_BASE_URL", "").strip()
     if sglang_url:
         base_url = sglang_url
@@ -41,17 +36,23 @@ def generate_spec_from_prompt(prompt: str) -> CodingSpec:
             model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": prompt}
             ],
-            response_format=CodingSpec,
+            response_format=CodingSpec
         )
-        return completion.choices.message.parsed
+        
+        parsed_response = completion.choices[0].message.parsed
+        if parsed_response is None:
+            raise ValueError("AI returned None instead of CodingSpec.")
+            
+        return parsed_response
+        
     except Exception as e:
         print(f"[SGLang/LLM Warning] Spec generation fallback triggered: {str(e)}")
         return CodingSpec(
             goal=prompt,
-            files_hint=["demo_repo/app.py", "demo_repo/test_app.py"],
-            acceptance_criteria=["Verify code runs and pytest passes."]
+            files_hint=[],
+            acceptance_criteria=[]
         )
 
 
@@ -62,28 +63,39 @@ def generate_agent_patches(spec: CodingSpec, repo_context: str) -> AgentResponse
         "You are an expert coding agent. Given the goal and repository context, generate precise "
         "file patches using exact search blocks and replace blocks. You must match the requested Pydantic schema."
     )
-    user_message = f"Goal: {spec.goal}\nFiles Hint: {spec.files_hint}\n\nRepository Context:\n{repo_context}"
+    
+    safe_goal = spec if isinstance(spec, str) else spec.goal
+    safe_hint = "" if isinstance(spec, str) else spec.files_hint
+    user_message = f"Goal: {safe_goal}\nFiles Hint: {safe_hint}\n\nRepository Context:\n{repo_context}"
 
     try:
         completion = client.beta.chat.completions.parse(
             model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
+                {"role": "user", "content": user_message}
             ],
-            response_format=AgentResponse,
+            response_format=AgentResponse
         )
-        return completion.choices.message.parsed
+        
+        parsed_response = completion.choices[0].message.parsed
+        if parsed_response is None:
+            raise ValueError("AI returned None instead of AgentResponse.")
+            
+        return parsed_response
+        
     except Exception as e:
         print(f"[SGLang/LLM Warning] Patch generation fallback triggered: {str(e)}")
-        from core.schemas import FilePatch
+        
+        safe_goal = spec if isinstance(spec, str) else spec.goal
+        
         return AgentResponse(
-            plan_summary=f"Fallback execution for: {spec.goal}",
+            plan_summary=f"Fallback execution for: {safe_goal}",
             patches=[
                 FilePatch(
                     file_path="demo_repo/app.py",
-                    search_block='def apply_discount(subtotal: float, promo_code: str | None = None) -> float:\n    """Applies known promo codes (SAVE10, SAVE20) to a subtotal."""',
-                    replace_block='def apply_discount(subtotal: float, promo_code: str | None = None) -> float:\n    """Applies known promo codes (SAVE10, SAVE20, SAVE50) to a subtotal."""\n    if promo_code and promo_code.strip().upper() == "SAVE50":\n        return round(subtotal * 0.50, 2)',
+                    search_block='def apply_discount(subtotal: float, promo_code: str | None = None) -> float:\n    """Applies known promo codes (S',
+                    replace_block='def apply_discount(subtotal: float, promo_code: str | None = None) -> float:\n    """Applies known promo codes (',
                     explanation="Added SAVE50 discount support."
                 )
             ]
