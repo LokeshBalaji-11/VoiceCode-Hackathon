@@ -13,7 +13,9 @@
 
 ## 🎥 Watch the 2-Minute Demo Video
 
-👉 **[Click Here to Watch the VoiceCode Autopilot Studio Demo on YouTube](https://youtu.be/8syPDHtA9a8)
+👉 **[Click Here to Watch the VoiceCode Autopilot Studio Demo on YouTube](https://youtu.be/8syPDHtA9a8)**
+
+*(Note to Judges: A public live-site URL is not provided because VoiceCode Autopilot Studio actively manipulates the local file system, executes Python subprocesses for `pytest`, and performs Git operations. Exposing these backend actions to a public server creates significant security risks. The project is designed to run safely on `localhost`, so please view the live demo video above or use the Quickstart guide to spin it up locally!)*
 
 ---
 
@@ -29,9 +31,9 @@ AI coding assistants are great at generating isolated code snippets, but develop
 
 We built VoiceCode Autopilot Studio by deeply integrating sponsor technologies into our core execution loop:
 
-* 🎙️ **AssemblyAI (Low-Latency Voice-to-Code):** Powers the studio's voice interface, transcribing spoken technical coding specifications into accurate, structured natural language prompts in real time.
-* ⚡ **SGLang (Structured LLM Execution):** Drives our `services/sglang_engine.py` backend. We leverage SGLang to enforce strict Pydantic schema generation (`CodingSpec` and `AgentResponse`), guaranteeing deterministic surgical patch blocks (`search_block` / `replace_block`) with zero formatting hallucinations.
-* 🛡️ **AuditKit (Dual-Stage Security Guardrails):** Implements a two-layer security perimeter (`core/safety_audit.py`):
+- 🎙️ **AssemblyAI (Low-Latency Voice-to-Code):** Powers the studio's voice interface, transcribing spoken technical coding specifications into accurate, structured natural language prompts in real time.
+- ⚡ **SGLang (Structured LLM Execution):** Drives our `services/sglang_engine.py` backend. We leverage SGLang to enforce strict Pydantic schema generation (`CodingSpec` and `AgentResponse`), guaranteeing deterministic surgical patch blocks (`search_block` / `replace_block`) with zero formatting hallucinations.
+- 🛡️ **AuditKit (Dual-Stage Security Guardrails):** Implements a two-layer security perimeter (`core/safety_audit.py`):
   * **Stage 1 (Pre-Flight Prompt Screening):** Intercepts and blocks prompt injections, jailbreaks, and credential extraction attempts before any LLM call is made.
   * **Stage 2 (Post-Patch Static Audit):** Scans generated code diffs for hardcoded secrets, unsafe system calls, and security anti-patterns prior to Git branch execution.
 
@@ -74,7 +76,7 @@ voicecode-autopilot/
 🛠️ Quickstart & Local Installation
 1. Clone the Repository
 Bash
-git clone [https://github.com/your-username/voicecode-autopilot.git](https://github.com/your-username/voicecode-autopilot.git)
+git clone [https://github.com/LokeshBalaji-11/voicecode-autopilot.git](https://github.com/LokeshBalaji-11/voicecode-autopilot.git)
 cd voicecode-autopilot
 2. Install Dependencies
 Ensure you have Python 3.10+ installed, then run:
@@ -115,7 +117,7 @@ Result: Watch Steps 01–07 execute autonomously, inspect the changes under the 
 Click Rollback Checkpoint and Clear session in the top navigation bar at any time to restore demo_repo to a clean baseline state.
 
 📄 License
-Distributed under the MIT License. Built for the Hackathon.
+Distributed under the MIT License. Built for the Syntax Error 2026 Hackathon.
 
 
-<FollowUp label="Would you like the exact Git commands to commit this README and push your code safely without exposing your .env file?" query="Yes, give me the exact git commands to commit the README and push safely without exposing .env"/>
+<FollowUp label="Want the Git terminal commands to commit this README update directly to your repository?" query="Give me the exact git commands to commit this README."/>
